@@ -43,36 +43,33 @@
 //   return prompt
 // }
 
-// export default async function handler(req: any, res: any) {
-//   const messages = req.body.messages
-//   const messagesPrompt = generatePromptFromMessages(messages)
-//   const defaultPrompt = `I am Friendly AI Assistant. \n\nThis is the conversation between AI Bot and a news reporter.\n\n${botName}: ${firstMessge}\n${userName}: ${messagesPrompt}\n${botName}: `
-//   const finalPrompt = process.env.AI_PROMPT
-//     ? `${process.env.AI_PROMPT}${messagesPrompt}\n${botName}: `
-//     : defaultPrompt
-
-//   const payload = {
-//     model: 'text-davinci-003',
-//     prompt: finalPrompt,
-//     temperature: process.env.AI_TEMP ? parseFloat(process.env.AI_TEMP) : 0.7,
-//     max_tokens: process.env.AI_MAX_TOKENS
-//       ? parseInt(process.env.AI_MAX_TOKENS)
-//       : 200,
-//     top_p: 1,
-//     frequency_penalty: 0,
-//     presence_penalty: 0,
-//     stop: [`${botName}:`, `${userName}:`],
-//     user: req.body?.user,
-//   }
-
-//   /**
-//    * @doc https://vercel.com/docs/concepts/limits/overview#serverless-function-execution-timeout
-//    * Serverless Function Execution Timeout
-//    * The maximum execution timeout is 10 seconds when deployed on a Personal Account (Hobby plan).
-//    * For Teams, the execution timeout is 60 seconds (Pro plan) or 900 seconds (Enterprise plan).
-//    */
-//   const response = await openai.createCompletion(payload)
-//   const firstResponse = response.data.choices[0].text
-
-//   res.status(200).json({ text: firstResponse })
-// }
+export default async function handler(req: any, res: any) {
+  // const messages = req.body.messages
+  // const messagesPrompt = generatePromptFromMessages(messages)
+  // const defaultPrompt = `I am Friendly AI Assistant. \n\nThis is the conversation between AI Bot and a news reporter.\n\n${botName}: ${firstMessge}\n${userName}: ${messagesPrompt}\n${botName}: `
+  // const finalPrompt = process.env.AI_PROMPT
+  //   ? `${process.env.AI_PROMPT}${messagesPrompt}\n${botName}: `
+  //   : defaultPrompt
+  // const payload = {
+  //   model: 'text-davinci-003',
+  //   prompt: finalPrompt,
+  //   temperature: process.env.AI_TEMP ? parseFloat(process.env.AI_TEMP) : 0.7,
+  //   max_tokens: process.env.AI_MAX_TOKENS
+  //     ? parseInt(process.env.AI_MAX_TOKENS)
+  //     : 200,
+  //   top_p: 1,
+  //   frequency_penalty: 0,
+  //   presence_penalty: 0,
+  //   stop: [`${botName}:`, `${userName}:`],
+  //   user: req.body?.user,
+  // }
+  // /**
+  //  * @doc https://vercel.com/docs/concepts/limits/overview#serverless-function-execution-timeout
+  //  * Serverless Function Execution Timeout
+  //  * The maximum execution timeout is 10 seconds when deployed on a Personal Account (Hobby plan).
+  //  * For Teams, the execution timeout is 60 seconds (Pro plan) or 900 seconds (Enterprise plan).
+  //  */
+  // const response = await openai.createCompletion(payload)
+  // const firstResponse = response.data.choices[0].text
+  // res.status(200).json({ text: firstResponse })
+}
