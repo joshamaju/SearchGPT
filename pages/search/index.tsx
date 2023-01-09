@@ -18,7 +18,15 @@ export const getServerSideProps = async function (
 ) {
   const { q } = ctx.query;
 
-  console.log(ctx.query);
+  console.log(ctx.query, typeof q);
+
+  if (typeof q !== "string" || q.trim() === "") {
+    return {
+      redirect: {
+        destination: "/",
+      },
+    };
+  }
 
   const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY,
@@ -122,14 +130,19 @@ function Search(
           router.push(`/search?q=${prompt}`);
         }}
       >
-        <input required type="text" name="prompt" defaultValue={props.prompt} />
+        <input
+          required
+          type="text"
+          name="prompt"
+          defaultValue={props?.prompt}
+        />
         <button type="submit">send</button>
       </form>
 
       <div>
-        <h3>{props.result}</h3>
+        {props?.result ? <h3>{props.result}</h3> : null}
 
-        {props.links.length > 0 ? (
+        {props?.links && props.links.length > 0 ? (
           <>
             <h6>Links:</h6>
 
@@ -148,37 +161,39 @@ function Search(
         <section>
           <h4>Additional Results</h4>
 
-          <ul>
-            {props.variations.map((result, i) => {
-              return (
-                <li key={i}>
-                  <h4>{result.prompt}</h4>
-                  <p>{result.result}</p>
+          {props?.variations ? (
+            <ul>
+              {props.variations.map((result, i) => {
+                return (
+                  <li key={i}>
+                    <h4>{result.prompt}</h4>
+                    <p>{result.result}</p>
 
-                  {props.links.length > 0 ? (
-                    <>
-                      <h6>Links:</h6>
+                    {props.links.length > 0 ? (
+                      <>
+                        <h6>Links:</h6>
 
-                      <ul>
-                        {props.links.map((link, i) => {
-                          return (
-                            <a
-                              key={i}
-                              href={link}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {link}
-                            </a>
-                          );
-                        })}
-                      </ul>
-                    </>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
+                        <ul>
+                          {props.links.map((link, i) => {
+                            return (
+                              <a
+                                key={i}
+                                href={link}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {link}
+                              </a>
+                            );
+                          })}
+                        </ul>
+                      </>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
         </section>
       </div>
     </main>
