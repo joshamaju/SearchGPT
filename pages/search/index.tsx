@@ -1,8 +1,7 @@
-import { GetServerSideProps, GetServerSidePropsContext } from "next";
+import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 
 import { Configuration, OpenAIApi } from "openai";
-import { inspect } from "util";
 
 function get_prompt(prompt: string) {
   return `
