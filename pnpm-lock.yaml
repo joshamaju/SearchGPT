@@ -2,6 +2,7 @@ dependencies:
   '@vercel/analytics': 0.1.6_react@18.2.0
   '@vercel/examples-ui': 1.0.4_87fc2d0795c3886ac83115945aa18d02
   axios: 1.2.2
+  fp-ts: 2.13.1
   next: 13.1.1_react-dom@18.2.0+react@18.2.0
   openai: 3.1.0
   react: 18.2.0
@@ -1269,6 +1270,10 @@ packages:
       node: '>= 6'
     resolution:
       integrity: sha512-ETEklSGi5t0QMZuiXoA/Q6vcnxcLQP5vdugSpuAyi6SVGi2clPPp+xgEhuMaHC+zGgn31Kd235W35f7Hykkaww==
+  /fp-ts/2.13.1:
+    dev: false
+    resolution:
+      integrity: sha512-0eu5ULPS2c/jsa1lGFneEFFEdTbembJv8e4QKXeVJ3lm/5hyve06dlKZrpxmMwJt6rYen7sxmHHK2CLaXvWuWQ==
   /fraction.js/4.2.0:
     dev: true
     resolution:
@@ -2645,6 +2650,7 @@ specifiers:
   axios: ^1.2.2
   eslint: ^8.11.0
   eslint-config-next: ^12.1.0
+  fp-ts: ^2.13.1
   next: latest
   openai: ^3.1.0
   postcss: ^8.4.14

@@ -2,6 +2,19 @@ import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 
 import { Configuration, OpenAIApi } from "openai";
+import { get_answer } from "../../core/usecases/get_answer";
+import { get_openai } from "../../lib/openai";
+
+import axios from "axios";
+
+import * as E from "fp-ts/Either";
+import * as O from "fp-ts/Option";
+import { pipe } from "fp-ts/lib/function";
+import { useQuery } from "react-query";
+
+type IOError = {};
+
+type NetworkError = {};
 
 function get_prompt(prompt: string) {
   return `
@@ -28,92 +41,157 @@ export const getServerSideProps = async function (
     };
   }
 
-  const configuration = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
+  const openai = get_openai();
 
-  const api = new OpenAIApi(configuration);
+  const get_result = get_answer(q);
 
-  const bot_name = "AI";
+  const answer = await get_result(openai)();
 
-  const final_prompt = `Generate three variations of this prompt: "${q}"`;
-
-  const payload = {
-    top_p: 1,
-    max_tokens: 256,
-    presence_penalty: 0,
-    frequency_penalty: 0,
-    prompt: final_prompt,
-    stop: [`${bot_name}:`],
-    model: "text-davinci-003",
-    // user: req.body?.user,
-    // temperature: process.env.AI_TEMP ? parseFloat(process.env.AI_TEMP) : 0.7,
-  };
-
-  const response = await api.createCompletion({
-    ...payload,
-    prompt: get_prompt(q),
-  });
-
-  const variation_response = await api.createCompletion(payload);
-
-  const [choice] = variation_response.data.choices;
-
-  const lines = choice.text?.split("\n");
-
-  const trimmed_lines = lines?.filter((line) => line.trim() !== "");
-
-  let variations: { prompt: string; result?: string }[] = [];
-
-  console.log(response.data, get_prompt(q));
-
-  if (trimmed_lines) {
-    const new_result = await Promise.all(
-      trimmed_lines.map(async (line) => {
-        const result = await api.createCompletion({
-          ...payload,
-          prompt: get_prompt(line),
-        });
-        return { prompt: line, result: result.data.choices[0].text };
-      })
-    );
-
-    // console.log(
-    //   response.data,
-    //   inspect(new_result, false, Infinity),
-    //   inspect(
-    //     new_result.map((r) => r.result?.match(url_regex)),
-    //     false,
-    //     Infinity
-    //   )
-    // );
-
-    variations = new_result.map((result) => {
-      return {
-        ...result,
-        links: ([] as string[]).concat(result.result?.match(url_regex) ?? []),
-      };
-    });
+  if (E.isLeft(answer)) {
+    return {
+      props: {
+        data: { prompt: q },
+        fatal_error: answer.left.message,
+      },
+    };
   }
-
-  const text = response.data.choices[0].text;
 
   return {
     props: {
-      prompt: q,
-      variations,
-      result: response.data.choices[0].text,
-      links: ([] as string[]).concat(text?.match(url_regex) ?? []),
+      not_found: O.isNone(answer.right),
+      data: {
+        prompt: q,
+        answer: pipe(
+          answer.right,
+          O.getOrElse(() => "")
+        ),
+      },
     },
   };
+
+  // const configuration = new Configuration({
+  //   apiKey: process.env.OPENAI_API_KEY,
+  // });
+
+  // const api = new OpenAIApi(configuration);
+
+  // const bot_name = "AI";
+
+  // const final_prompt = `Generate three variations of this prompt: "${q}"`;
+
+  // const payload = {
+  //   top_p: 1,
+  //   max_tokens: 256,
+  //   presence_penalty: 0,
+  //   frequency_penalty: 0,
+  //   prompt: final_prompt,
+  //   stop: [`${bot_name}:`],
+  //   model: "text-davinci-003",
+  //   // user: req.body?.user,
+  //   // temperature: process.env.AI_TEMP ? parseFloat(process.env.AI_TEMP) : 0.7,
+  // };
+
+  // const response = await api.createCompletion({
+  //   ...payload,
+  //   prompt: get_prompt(q),
+  // });
+
+  // const variation_response = await api.createCompletion(payload);
+
+  // const [choice] = variation_response.data.choices;
+
+  // const lines = choice.text?.split("\n");
+
+  // const trimmed_lines = lines?.filter((line) => line.trim() !== "");
+
+  // let variations: { prompt: string; result?: string }[] = [];
+
+  // console.log(response.data, get_prompt(q));
+
+  // if (trimmed_lines) {
+  //   const new_result = await Promise.all(
+  //     trimmed_lines.map(async (line) => {
+  //       const result = await api.createCompletion({
+  //         ...payload,
+  //         prompt: get_prompt(line),
+  //       });
+  //       return { prompt: line, result: result.data.choices[0].text };
+  //     })
+  //   );
+
+  //   // console.log(
+  //   //   response.data,
+  //   //   inspect(new_result, false, Infinity),
+  //   //   inspect(
+  //   //     new_result.map((r) => r.result?.match(url_regex)),
+  //   //     false,
+  //   //     Infinity
+  //   //   )
+  //   // );
+
+  //   variations = new_result.map((result) => {
+  //     return {
+  //       ...result,
+  //       links: ([] as string[]).concat(result.result?.match(url_regex) ?? []),
+  //     };
+  //   });
+  // }
+
+  // const text = response.data.choices[0].text;
+
+  // return {
+  //   props: {
+  //     prompt: q,
+  //     variations,
+  //     result: response.data.choices[0].text,
+  //     links: ([] as string[]).concat(text?.match(url_regex) ?? []),
+  //   },
+  // };
 };
 
 function Search(
-  props: Awaited<ReturnType<typeof getServerSideProps>>["props"]
+  props:
+    | { fatal_error: string; data: { prompt: string } }
+    | {
+        not_found: boolean;
+        data: { prompt: string; answer: string };
+      }
 ) {
   const router = useRouter();
 
-  console.log(props);
+  const { prompt } = props.data;
+
+  const variations = useQuery({
+    refetchInterval: false,
+    queryKey: ["variations"],
+    async queryFn() {
+      const result = await axios.get<{ results: string; variations: string[] }>(
+        "/api/prompt/variation",
+        { params: { prompt } }
+      );
+
+      return result.data;
+    },
+  });
+
+  const variations_and_results = useQuery({
+    refetchInterval: false,
+    queryKey: ["variations_and_results"],
+    enabled: variations.data ? variations.data?.variations.length > 0 : false,
+    queryFn() {
+      return Promise.all(
+        variations.data!.variations.map(async (prompt) => {
+          const result = await axios.get<string>("/api/prompt/answer", {
+            params: { prompt },
+          });
+
+          return { prompt, result: result.data };
+        })
+      );
+    },
+  });
+
+  console.log(variations.data, variations_and_results.data);
 
   return (
     <main>
@@ -130,19 +208,37 @@ function Search(
           router.push(`/search?q=${prompt}`);
         }}
       >
-        <input
-          required
-          type="text"
-          name="prompt"
-          defaultValue={props?.prompt}
-        />
+        <input required type="text" name="prompt" defaultValue={prompt} />
         <button type="submit">send</button>
       </form>
 
       <div>
-        {props?.result ? <h3>{props.result}</h3> : null}
+        {"fatal_error" in props ? (
+          <pre>
+            <code>{props.fatal_error}</code>
+          </pre>
+        ) : (
+          <p>{props.data.answer}</p>
+        )}
 
-        {props?.links && props.links.length > 0 ? (
+        <section>
+          <h4>Additional Results</h4>
+
+          {variations_and_results.data ? (
+            <ul>
+              {variations_and_results.data.map((data, i) => {
+                return (
+                  <li key={i}>
+                    <p>{data.prompt}</p>
+                    <p>{data.result}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+        </section>
+
+        {/* {props?.links && props.links.length > 0 ? (
           <>
             <h6>Links:</h6>
 
@@ -156,9 +252,9 @@ function Search(
               })}
             </ul>
           </>
-        ) : null}
+        ) : null} */}
 
-        <section>
+        {/* <section>
           <h4>Additional Results</h4>
 
           {props?.variations ? (
@@ -194,7 +290,7 @@ function Search(
               })}
             </ul>
           ) : null}
-        </section>
+        </section> */}
       </div>
     </main>
   );
