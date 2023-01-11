@@ -11,6 +11,7 @@ import * as E from "fp-ts/Either";
 import * as O from "fp-ts/Option";
 import { pipe } from "fp-ts/lib/function";
 import { useQuery } from "react-query";
+import { Button, Empty, Input } from "antd";
 
 type IOError = {};
 
@@ -163,7 +164,10 @@ function Search(
 
   const variations = useQuery({
     refetchInterval: false,
-    queryKey: ["variations"],
+    queryKey: ["variations", prompt],
+    enabled:
+      !("fatal_error" in props) &&
+      (!("not_found" in props) || !props.not_found),
     async queryFn() {
       const result = await axios.get<{ results: string; variations: string[] }>(
         "/api/prompt/variation",
@@ -176,8 +180,8 @@ function Search(
 
   const variations_and_results = useQuery({
     refetchInterval: false,
-    queryKey: ["variations_and_results"],
-    enabled: variations.data ? variations.data?.variations.length > 0 : false,
+    queryKey: ["variations_and_results", prompt],
+    enabled: variations.data ? variations.data.variations.length > 0 : false,
     queryFn() {
       return Promise.all(
         variations.data!.variations.map(async (prompt) => {
@@ -191,54 +195,85 @@ function Search(
     },
   });
 
-  console.log(variations.data, variations_and_results.data);
+  console.log(props, variations.data, variations_and_results.data);
 
   return (
-    <main>
-      <form
-        method="get"
-        action="/search"
-        onSubmit={(e) => {
-          e.preventDefault();
+    <div>
+      <header className="p-4 bg-white border-b">
+        <form
+          method="get"
+          action="/search"
+          className="lg:w-[40%]"
+          onSubmit={(e) => {
+            e.preventDefault();
 
-          const data = new FormData(e.target as HTMLFormElement);
+            const data = new FormData(e.target as HTMLFormElement);
 
-          const prompt = data.get("prompt");
+            const prompt = data.get("prompt");
 
-          router.push(`/search?q=${prompt}`);
-        }}
-      >
-        <input required type="text" name="prompt" defaultValue={prompt} />
-        <button type="submit">send</button>
-      </form>
+            router.push(`/search?q=${prompt}`);
+          }}
+        >
+          <Input required type="search" name="prompt" defaultValue={prompt} />
+        </form>
+      </header>
 
-      <div>
-        {"fatal_error" in props ? (
-          <pre>
-            <code>{props.fatal_error}</code>
-          </pre>
-        ) : (
-          <p>{props.data.answer}</p>
-        )}
+      <main className="p-4">
+        <div className="space-y-4 lg:w-[80%] mx-auto">
+          {"fatal_error" in props ? (
+            <div className="py-[20%] space-y-4 flex flex-col items-center justify-center">
+              <p className="text-xl text-center text-gray-300">
+                An error occurred while processing your search
+              </p>
 
-        <section>
-          <h4>Additional Results</h4>
+              <Button onClick={() => router.reload()}>Try again</Button>
+            </div>
+          ) : "not_found" in props && props.not_found ? (
+            <div>
+              <h5 className="text-xl py-6">
+                Your search - <strong>{prompt}</strong> - did not yield any
+                results
+              </h5>
 
-          {variations_and_results.data ? (
-            <ul>
-              {variations_and_results.data.map((data, i) => {
-                return (
-                  <li key={i}>
-                    <p>{data.prompt}</p>
-                    <p>{data.result}</p>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-        </section>
+              <section className="space-y-4">
+                <h2>Suggestions:</h2>
 
-        {/* {props?.links && props.links.length > 0 ? (
+                <ul className="ml-[2rem] list-decimal">
+                  <li>Try different keywords.</li>
+                  <li>Try different prompts.</li>
+                  <li>Add more details to your prompt</li>
+                </ul>
+              </section>
+            </div>
+          ) : (
+            <>
+              <p className="text-lg">{props.data.answer}</p>
+
+              <section className="space-y-3">
+                <h4 className="text-lg font-semibold">Additional Results</h4>
+
+                {variations_and_results.data ? (
+                  <ul className="space-y-6 ml-[2rem]">
+                    {variations_and_results.data.map((data, i) => {
+                      return (
+                        <li
+                          key={i}
+                          className="space-y-2 border rounded-md p-4 text-gray-700"
+                        >
+                          {/* <h5 className="text-md font-semibold">
+                            {data.prompt}
+                          </h5> */}
+                          <p>{data.result}</p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+              </section>
+            </>
+          )}
+
+          {/* {props?.links && props.links.length > 0 ? (
           <>
             <h6>Links:</h6>
 
@@ -254,7 +289,7 @@ function Search(
           </>
         ) : null} */}
 
-        {/* <section>
+          {/* <section>
           <h4>Additional Results</h4>
 
           {props?.variations ? (
@@ -291,8 +326,9 @@ function Search(
             </ul>
           ) : null}
         </section> */}
-      </div>
-    </main>
+        </div>
+      </main>
+    </div>
   );
 }
 
