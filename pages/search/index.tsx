@@ -1,17 +1,16 @@
 import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 
-import { Configuration, OpenAIApi } from "openai";
 import { get_answer } from "../../core/usecases/get_answer";
 import { get_openai } from "../../lib/openai";
 
 import axios from "axios";
 
+import { Button, Empty, Input, Skeleton } from "antd";
 import * as E from "fp-ts/Either";
-import * as O from "fp-ts/Option";
 import { pipe } from "fp-ts/lib/function";
+import * as O from "fp-ts/Option";
 import { useQuery } from "react-query";
-import { Button, Empty, Input } from "antd";
 
 type IOError = {};
 
@@ -31,8 +30,6 @@ export const getServerSideProps = async function (
   ctx: GetServerSidePropsContext
 ) {
   const { q } = ctx.query;
-
-  console.log(ctx.query, typeof q);
 
   if (typeof q !== "string" || q.trim() === "") {
     return {
@@ -69,41 +66,6 @@ export const getServerSideProps = async function (
       },
     },
   };
-
-  // const configuration = new Configuration({
-  //   apiKey: process.env.OPENAI_API_KEY,
-  // });
-
-  // const api = new OpenAIApi(configuration);
-
-  // const bot_name = "AI";
-
-  // const final_prompt = `Generate three variations of this prompt: "${q}"`;
-
-  // const payload = {
-  //   top_p: 1,
-  //   max_tokens: 256,
-  //   presence_penalty: 0,
-  //   frequency_penalty: 0,
-  //   prompt: final_prompt,
-  //   stop: [`${bot_name}:`],
-  //   model: "text-davinci-003",
-  //   // user: req.body?.user,
-  //   // temperature: process.env.AI_TEMP ? parseFloat(process.env.AI_TEMP) : 0.7,
-  // };
-
-  // const response = await api.createCompletion({
-  //   ...payload,
-  //   prompt: get_prompt(q),
-  // });
-
-  // const variation_response = await api.createCompletion(payload);
-
-  // const [choice] = variation_response.data.choices;
-
-  // const lines = choice.text?.split("\n");
-
-  // const trimmed_lines = lines?.filter((line) => line.trim() !== "");
 
   // let variations: { prompt: string; result?: string }[] = [];
 
@@ -164,6 +126,7 @@ function Search(
 
   const variations = useQuery({
     refetchInterval: false,
+    refetchOnWindowFocus: false,
     queryKey: ["variations", prompt],
     enabled:
       !("fatal_error" in props) &&
@@ -180,6 +143,7 @@ function Search(
 
   const variations_and_results = useQuery({
     refetchInterval: false,
+    refetchOnWindowFocus: false,
     queryKey: ["variations_and_results", prompt],
     enabled: variations.data ? variations.data.variations.length > 0 : false,
     queryFn() {
@@ -252,22 +216,34 @@ function Search(
               <section className="space-y-3">
                 <h4 className="text-lg font-semibold">Additional Results</h4>
 
-                {variations_and_results.data ? (
-                  <ul className="space-y-6 ml-[2rem]">
-                    {variations_and_results.data.map((data, i) => {
-                      return (
-                        <li
-                          key={i}
-                          className="space-y-2 border rounded-md p-4 text-gray-700"
-                        >
-                          {/* <h5 className="text-md font-semibold">
+                {variations_and_results.isLoading ? (
+                  <div className="space-y-10">
+                    <Skeleton active />
+                    <Skeleton active />
+                    <Skeleton active />
+                  </div>
+                ) : variations_and_results.data ? (
+                  variations_and_results.data.length > 0 ? (
+                    <ul className="space-y-6 ml-[2rem]">
+                      {variations_and_results.data.map((data, i) => {
+                        return (
+                          <li
+                            key={i}
+                            className="space-y-2 border rounded-md p-4 text-gray-700"
+                          >
+                            {/* <h5 className="text-md font-semibold">
                             {data.prompt}
                           </h5> */}
-                          <p>{data.result}</p>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                            <p>{data.result}</p>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <div className="p-4">
+                      <Empty />
+                    </div>
+                  )
                 ) : null}
               </section>
             </>
